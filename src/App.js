@@ -1,24 +1,20 @@
-import logo from './logo.svg';
-import './App.css';
+import logo from "./assets/logo.svg";
+import { Switch, Route } from "react-router-dom";
+import { Container } from "@mui/material";
+import "./styles/App.css";
+import Vehicles from "./screens/vehicles/index.js";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <Switch>
+        <Route path="/">
+          <Container>
+            <Vehicles />
+          </Container>
+        </Route>
+      </Switch>
+    </>
   );
 }
 
