@@ -1,4 +1,3 @@
-import logo from "./assets/logo.svg";
 import { Switch, Route } from "react-router-dom";
 import { Container } from "@mui/material";
 import "./styles/App.css";
