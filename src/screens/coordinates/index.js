@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, TextField } from "@mui/material";
+import moment from "moment";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TablePagination,
   TableRow,
 } from "@mui/material";
+import { getCoordinates } from "../../services/coordinates/index";
 
 const columns = [
   {
@@ -26,7 +28,7 @@ const columns = [
     minWidth: "35%",
   },
   {
-    id: "recorded",
+    id: "created_at",
     name: "Recorded",
     label: "Recorded",
     align: "left",
@@ -34,42 +36,21 @@ const columns = [
   },
 ];
 
-const rows = [
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-  { latitude: 12.122331, longitude: 11.2213131, recorded: "2021/11/02" },
-];
-
 class Coordinates extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      entities: [],
+      page_information: {
+        page: 1,
+        size: 10,
+        total_number_of_entities: 1,
+        total_number_of_pages: 1
+      },
+      apiready: true,
+      vehicleId: props?.vehicleId,
+      startdate: null,
+      enddate: null,
       page: 0,
       setPage: 0,
       rowsPerPage: 10,
@@ -77,17 +58,49 @@ class Coordinates extends React.Component {
     };
   }
 
+  componentDidMount() {
+    this.getCoordinates(this.state.vehicleId);
+  }
+
+  componentDidUpdate() {
+    this.checkDateStartToEnd();
+  }
+
+  getCoordinates(vehicleId, page = 1, size = 10, start = null, end = null) {
+    getCoordinates(vehicleId, page, size, start, end).then((rs) => {
+      this.setState({ ...this.state, entities: rs.data.entities, page_information: rs.data.page_information, apiready: false });
+    });
+  }
+
   handleChangePage = (event, newPage) => {
-    this.setState({ ...this.state, page: newPage });
+    let page = (newPage + 1);
+    if (this.state.page_information.page !== page) {
+      this.getCoordinates(this.state.vehicleId, page, this.state.page_information.size);
+    }
   };
 
   handleChangeRowsPerPage = (event) => {
-    this.setState({
-      ...this.state,
-      setPage: 0,
-      rowsPerPage: +event.target.value,
-    });
+    this.getCoordinates(this.state.vehicleId, 1, +event.target.value);
   };
+
+  handleChangeStartdate = (event) => {
+    if (event.target.value !== this.state.startdate) {
+      console.log(event.target.value);
+      this.setState({ ...this.state, startdate: event.target.value, apiready: true });
+    }
+  }
+
+  handleChangeEmddate = (event) => {
+    if (event.target.value !== this.state.enddate) {
+      this.setState({ ...this.state, enddate: event.target.value, apiready: true });
+    }
+  }
+
+  checkDateStartToEnd() {
+    if (moment(this.state.enddate) >= moment(this.state.startdate) && this.state.apiready) {
+      this.getCoordinates(this.state.vehicleId, 1, 10, this.state.startdate, this.state.enddate);
+    }
+  }
 
   render() {
     return (
@@ -112,6 +125,7 @@ class Coordinates extends React.Component {
           >
             <TextField
               type="date"
+              onChange={event => this.handleChangeStartdate(event)}
               sx={{ mx: 1 }}
               id="outlined-from-date"
               InputLabelProps={{
@@ -119,10 +133,10 @@ class Coordinates extends React.Component {
               }}
               size="small"
               label="From date"
-              value={"TextField"}
             />
             <TextField
               type="date"
+              onChange={event => this.handleChangeEmddate(event)}
               sx={{ mx: 1 }}
               id="outlined-to-date"
               InputLabelProps={{
@@ -130,7 +144,6 @@ class Coordinates extends React.Component {
               }}
               size="small"
               label="To date"
-              value={"TextField"}
             />
           </Box>
           <Box>
@@ -150,13 +163,8 @@ class Coordinates extends React.Component {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {rows
-                    .slice(
-                      this.state.page * this.state.rowsPerPage,
-                      this.state.page * this.state.rowsPerPage +
-                        this.state.rowsPerPage
-                    )
-                    .map((row,index) => {
+                  {this.state.entities
+                    .map((row, index) => {
                       return (
                         <TableRow
                           hover
@@ -183,9 +191,9 @@ class Coordinates extends React.Component {
             <TablePagination
               rowsPerPageOptions={[10, 25, 100]}
               component="div"
-              count={rows.length}
-              rowsPerPage={this.state.rowsPerPage}
-              page={this.state.page}
+              count={this.state.page_information.total_number_of_entities}
+              rowsPerPage={this.state.page_information.size}
+              page={this.state.page_information.page - 1}
               onPageChange={this.handleChangePage}
               onRowsPerPageChange={this.handleChangeRowsPerPage}
             />

@@ -10,39 +10,21 @@ import {
   TableRow,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import Coordinates from "../coordinates/index.js";
+import Coordinates from "../coordinates/index";
+import { getVahicles } from "../../services/vehicles/index";
 
-const rows = [
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-  { vehicleId: 53456896941941 },
-  { vehicleId: 69161914919491 },
-  { vehicleId: 89181516911619 },
-];
 class Vehicles extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      vehiclesId: null,
+      entities: [],
+      page_information: {
+        page: 1,
+        size: 10,
+        total_number_of_entities: 1,
+        total_number_of_pages: 1
+      },
+      vehicleId: null,
       view: "page-vehicle",
       page: 0,
       setPage: 0,
@@ -51,20 +33,29 @@ class Vehicles extends React.Component {
     };
   }
 
+  componentDidMount() {
+    this.getVahicles();
+  }
+
+  getVahicles(page = 1, size = 10) {
+    getVahicles(page, size).then(rs => {
+      this.setState({ ...this.state, entities: rs.data.entities, page_information: rs.data.page_information });
+    });
+  }
+
   handleChangePage = (event, newPage) => {
-    this.setState({ ...this.state, page: newPage });
+    let page = (newPage + 1);
+    if (this.state.page_information.page !== page) {
+      this.getVahicles(page, this.state.page_information.size);
+    }
   };
 
   handleChangeRowsPerPage = (event) => {
-    this.setState({
-      ...this.state,
-      setPage: 0,
-      rowsPerPage: +event.target.value,
-    });
+    this.getVahicles(1, +event.target.value);
   };
 
-  handleClickViewTimeline = (vehiclesId) => {
-    this.setState({ ...this.state, view: "page-coor", vehiclesId: vehiclesId });
+  handleClickViewTimeline = (vehicleId) => {
+    this.setState({ ...this.state, view: "page-coor", vehicleId: vehicleId });
   };
 
   handleClickViewVehicle = () => {
@@ -81,13 +72,13 @@ class Vehicles extends React.Component {
           borderColor: "secondary.main",
         }}
       >
-        <Box 
-            sx={{
-              p: 3,
-              bgcolor: "secondary.main",
-              color: "#fff",
-            }}>
-            { this.state.view === "page-vehicle" ? 'Vehicles' : `Vehicles ID: ${this.state.vehiclesId}` }
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: "secondary.main",
+            color: "#fff",
+          }}>
+          {this.state.view === "page-vehicle" ? 'Vehicles' : `Vehicles ID: ${this.state.vehicleId}`}
         </Box>
         <Box sx={{ p: 3 }} hidden={this.state.view !== "page-vehicle"}>
           <Box
@@ -116,54 +107,52 @@ class Vehicles extends React.Component {
                 </TableHead>
 
                 <TableBody>
-                  {rows
-                    .slice(
-                      this.state.page * this.state.rowsPerPage,
-                      this.state.page * this.state.rowsPerPage +
-                        this.state.rowsPerPage
-                    )
-                    .map((row, index) => {
-                      return (
-                        <TableRow
-                          hover
-                          role="checkbox"
-                          tabIndex={-1}
-                          key={index}
-                        >
-                          <TableCell align={"left"}>{row.vehicleId}</TableCell>
-                          <TableCell align={"right"}>
-                            <Button
-                              onClick={() =>
-                                this.handleClickViewTimeline(row.vehicleId)
-                              }
-                              variant="contained"
-                            >
-                              VIEW TIMELINE
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                  {this.state.entities.map((row, index) => {
+                    return (
+                      <TableRow
+                        hover
+                        role="checkbox"
+                        tabIndex={-1}
+                        key={index}
+                      >
+                        <TableCell align={"left"}>{row.vehicleId}</TableCell>
+                        <TableCell align={"right"}>
+                          <Button
+                            onClick={() =>
+                              this.handleClickViewTimeline(row.vehicleId)
+                            }
+                            variant="contained"
+                          >
+                            VIEW TIMELINE
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
             <TablePagination
               rowsPerPageOptions={[10, 25, 100]}
               component="div"
-              count={rows.length}
-              rowsPerPage={this.state.rowsPerPage}
-              page={this.state.page}
+              count={this.state.page_information.total_number_of_entities}
+              rowsPerPage={this.state.page_information.size}
+              page={this.state.page_information.page - 1}
               onPageChange={this.handleChangePage}
               onRowsPerPageChange={this.handleChangeRowsPerPage}
             />
           </Box>
         </Box>
-        <Box sx={{ p: 3 }} hidden={this.state.view !== "page-coor"}>
-          <Button onClick={()=> this.handleClickViewVehicle()} variant="outlined" startIcon={<ArrowBackIcon />}>
-            Back
-          </Button>
-          <Coordinates />
-        </Box>
+        {
+          (this.state.view === "page-coor" ? <Box sx={{ p: 3 }} hidden={this.state.view !== "page-coor"}>
+            <Button onClick={() => this.handleClickViewVehicle()} variant="outlined" startIcon={<ArrowBackIcon />}>
+              Back
+            </Button>
+            <Coordinates vehicleId={this.state.vehicleId} />
+          </Box>
+            : ''
+          )
+        }
       </Box>
     );
   }
